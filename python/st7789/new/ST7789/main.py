@@ -5,7 +5,7 @@ import struct
 
 ST7789_WIDTH = 240
 ST7789_HEIGHT = 240
-ST7789_BAUDRATE = 4 * 10 ** 6
+ST7789_BAUDRATE = 15 * 10 ** 6
 
 ST7789_SCK = 10
 ST7789_SDA = 11
@@ -116,26 +116,22 @@ _BUFFER_SIZE = 256
 
 # init tuple format (b'command', b'data', delay_ms)
 _ST7789_INIT_CMDS = (
-    (_ST7789_SLPOUT, b'\x00', 120),               # Exit sleep mode
-    (_ST7789_NORON, b'\x00', 0),                 # Turn on the display
-    (b'\xb6', b'\x0a\x82', 0),             # Set display function control
-    # Set pixel format to 16 bits per pixel (RGB565)
-    (_ST7789_COLMOD, b'\x55', 10),
-    (b'\xb2', b'\x0c\x0c\x00\x33\x33', 0),  # Set porch control
-    (b'\xb7', b'\x35', 0),                 # Set gate control
-    (b'\xbb', b'\x28', 0),                 # Set VCOMS setting
-    (b'\xc0', b'\x0c', 0),                 # Set power control 1
-    (b'\xc2', b'\x01\xff', 0),             # Set power control 2
-    (b'\xc3', b'\x10', 0),                 # Set power control 3
-    (b'\xc4', b'\x20', 0),                 # Set power control 4
-    (b'\xc6', b'\x0f', 0),                 # Set VCOM control 1
-    (b'\xd0', b'\xa4\xa1', 0),             # Set power control A
-    # Set gamma curve positive polarity
-    (b'\xe0', b'\xd0\x00\x02\x07\x0a\x28\x32\x44\x42\x06\x0e\x12\x14\x17', 0),
-    # Set gamma curve negative polarity
-    (b'\xe1', b'\xd0\x00\x02\x07\x0a\x28\x31\x54\x47\x0e\x1c\x17\x1b\x1e', 0),
-    (_ST7789_INVON, b'\x00', 0),                 # Enable display inversion
-    (_ST7789_DISPON, b'\x00', 120)                # Turn on the display
+    (_ST7789_SLPOUT, None, 120),                                                         # Exit sleep mode
+    (_ST7789_NORON, None, 10),                                                            # Turn on the display
+    (_ST7789_COLMOD, b'\x55', 0),                                                          # Set pixel format to 16 bits per pixel (RGB565)
+    (_ST7789_PORCTRL, b'\x0c\x0c\x00\x33\x33', 0),                                          # Set porch control
+    (_ST7789_GCTRL, b'\x35', 0),                                                            # Set gate control
+    (_ST7789_VCOMS, b'\x28', 0),                                                            # Set VCOMS setting
+    (_ST7789_LCMCTRL, b'\x0c', 0),                                                          # Set power control 1
+    (_ST7789_VDVVRHEN, b'\x01\xff', 0),                                                     # Set power control 2
+    (_ST7789_VRHS, b'\x10', 0),                                                             # Set power control 3
+    (_ST7789_VDVSET, b'\x20', 0),                                                           # Set power control 4
+    (_ST7789_FRCTR2, b'\x0f', 0),                                                           # Set VCOM control 1
+    (_ST7789_PWCTRL1, b'\xa4\xa1', 0),                                                      # Set power control A
+    (_ST7789_PVGAMCTRL, b'\xd0\x00\x02\x07\x0a\x28\x32\x44\x42\x06\x0e\x12\x14\x17', 0),    # Set gamma curve positive polarity
+    (_ST7789_NVGAMCTRL, b'\xd0\x00\x02\x07\x0a\x28\x31\x54\x47\x0e\x1c\x17\x1b\x1e', 0),    # Set gamma curve negative polarity
+    (_ST7789_INVON, None, 0),                                                            # Enable display inversion
+    (_ST7789_DISPON, None, 120)                                                          # Turn on the display
 )
 
 
@@ -220,19 +216,23 @@ def main():
     display.init()
     # display.fill(COLOR_RED)
     # display.data_buffer[100] = 0xff
-    display.draw()
+    # display.draw()
     led = machine.Pin(25, machine.Pin.OUT)
     k = 0
     while True:
         led.toggle()
-        # sleep_ms(500)
-        display.draw_pixel(k, k, COLOR_RED)
-        k += 1
-        display.draw_pixel(k, k, COLOR_GREEN)
-        k += 1
-        display.draw_pixel(k, k, COLOR_BLUE)
-        k += 1
-        display.draw()
+        sleep_ms(500)
+        # display.draw_pixel(k, k, COLOR_RED)
+        # k += 1
+        # # display.draw_pixel(k, k, COLOR_GREEN)
+        # # k += 1
+        # # display.draw_pixel(k, k, COLOR_BLUE)
+        # # k += 1
+        # # display.draw()
+        # # for i in range(len(display.data_buffer)):
+        # #     display.data_buffer[i] = 0x00
+        # display.draw()
+            
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #include "stdio.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
-#include "ST7789/ST7789.h"
+#include "graphics/graphics.h"
 
 int main()
 {
@@ -14,21 +14,15 @@ int main()
     display.init();
     // display.fill(COLOR_565_BLUE);
     display.update();
-    uint8_t x = 0, y = 0;
-    uint16_t color = 0;
+    GraphicsText text(0, 0, "hello world", 1);
+    text.center_x(ST7789_WIDTH / 2);
+    text.center_y(ST7789_HEIGHT / 2);
     while (true)
     {
-        display.draw_pixel(x++, y, COLOR_565_RED);
-        if (x == 240)
-        {
-            x = 0;
-            y++;
-        }
+        display.fill(COLOR_565_BLACK);
+        text.draw(display, COLOR_565_WHITE);
         display.update();
         gpio_put(25, !gpio_get(25));
-        // if (k == 50)
-        //     display.hard_reset();
-        // sleep_ms(1000);
     }
 
     return 0;

@@ -33,10 +33,18 @@ project(CC1101 C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# Run python scripts
+message("Running create_font python script")
+execute_process(COMMAND
+    py src/python/create_font.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+)
+
 # Add executable. Default name is the project name, version 0.1
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/ST7789/ST7789.cpp
+        src/graphics/graphics.cpp
+        src/graphics/ST7789/ST7789.cpp
         )
 
 # Add the standard library to the build

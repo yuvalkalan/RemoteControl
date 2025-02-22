@@ -2,6 +2,8 @@
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include <algorithm>
+#include <string>
+#include "font.h"
 
 // display size
 #define ST7789_WIDTH 240
@@ -109,7 +111,7 @@ static uint8_t ST7789_PWCTRL1_VALUE[] = {0xa4, 0xa1};
 static uint8_t ST7789_PVGAMCTRL_VALUE[] = {0xd0, 0x00, 0x02, 0x07, 0x0a, 0x28, 0x32, 0x44, 0x42, 0x06, 0x0e, 0x12, 0x14, 0x17};
 static uint8_t ST7789_NVGAMCTRL_VALUE[] = {0xd0, 0x00, 0x02, 0x07, 0x0a, 0x28, 0x31, 0x54, 0x47, 0x0e, 0x1c, 0x17, 0x1b, 0x1e};
 
-typedef const uint16_t color_t;
+typedef uint16_t color_t;
 static color_t COLOR_565_BLACK = 0x0000;
 static color_t COLOR_565_BLUE = 0xF800;
 static color_t COLOR_565_RED = 0x001F;
@@ -145,4 +147,6 @@ public:
     void draw_pixel(uint8_t x, uint8_t y, color_t color);
     void update();
     void fill(color_t color);
+    void draw_char(uint8_t x, uint8_t y, char c, color_t color, uint8_t scale);
+    void draw_text(uint8_t x, uint8_t y, const std::string &text, uint16_t color, uint8_t scale);
 };

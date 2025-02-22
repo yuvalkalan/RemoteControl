@@ -77,7 +77,45 @@ void ST7789::fill(color_t color)
     // Fill the entire screen with a color
     std::fill(m_buffer, m_buffer + ST7789_WIDTH * ST7789_HEIGHT, convert_color(color));
 }
+void ST7789::draw_char(uint8_t x, uint8_t y, char c, uint16_t color, uint8_t scale)
+{
+    // Ensure the character is within the bounds of the font array
+    if (c < 32 || c > 126)
+        return; // ASCII range check
 
+    const uint16_t *bitmap = font_bitmap[c - 32]; // Get the bitmap for the character
+    for (int i = 0; i < FONT_CHAR_HEIGHT; i++)
+    { // Loop through the height of the character
+        uint16_t row = bitmap[i];
+        for (int j = 0; j < FONT_CHAR_WIDTH; j++)
+        { // Loop through the width of the character
+            if (row & (1 << j))
+            {
+                // printf("X");
+                for (uint8_t sx = 0; sx < scale; sx++) // Draw scaled pixel
+                    for (uint8_t sy = 0; sy < scale; sy++)
+                        draw_pixel(x + (j * scale) + sx, y + (i * scale) + sy, color);
+            }
+        }
+    }
+}
+void ST7789::draw_text(uint8_t x, uint8_t y, const std::string &text, uint16_t color, uint8_t scale)
+{
+    uint8_t ori_x = x;
+    for (size_t i = 0; i < text.length(); i++)
+    {
+        if (text[i] == '\n')
+        {
+            x = ori_x;
+            y += (FONT_CHAR_HEIGHT + 1) * scale;
+        }
+        else
+        {
+            draw_char(x, y, text[i], color, scale);
+            x += (FONT_CHAR_WIDTH + 1) * scale; // Move x cursor, 5 pixels for the character + 1 pixel space
+        }
+    }
+}
 void ST7789::hard_reset()
 {
     gpio_put(m_res_pin, 1);

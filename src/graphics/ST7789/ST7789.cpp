@@ -176,9 +176,11 @@ void ST7789::init()
     write_data_buffer(ST7789_NVGAMCTRL_VALUE, sizeof(ST7789_NVGAMCTRL_VALUE));
     // Enable display inversion
     write_command(ST7789_INVON);
+    // clear the display
     fill(COLOR_565_BLACK);
     update();
-    turn_on(true); // Turn on the display
+    // Turn on the display
+    turn_on(true);
 }
 
 void ST7789::turn_on(bool on)

@@ -45,6 +45,7 @@ add_executable(${PROJECT_NAME}
         src/main.cpp
         src/graphics/graphics.cpp
         src/graphics/ST7789/ST7789.cpp
+        src/matrix/matrix.cpp
         )
 
 # Add the standard library to the build

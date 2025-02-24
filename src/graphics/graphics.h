@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include "pico/stdlib.h"
 #include "ST7789/ST7789.h"
 
 class GraphicsColor

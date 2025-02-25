@@ -1,23 +1,37 @@
 #include "stdio.h"
 #include "pico/stdlib.h"
+#include "pico/unique_id.h"
+#include "pico/multicore.h"
 #include <string.h>
-#include "hardware/spi.h"
 #include "graphics/graphics.h"
 #include "matrix/matrix.h"
 #include "Socket/Socket.h"
 #include "SerialIn/SerialIn.h"
 
 #define LED_PIN 25
-#define POWER_PIN 16
+#define POWER_PIN 15
 
 // millis function from arduino
 #define millis() to_ms_since_boot(get_absolute_time())
 
 #define is_debug() strcmp(PICO_CMAKE_BUILD_TYPE, "Debug") == 0
 
-int main()
+void print_serial()
 {
-    // Initialize stdio
+    pico_unique_board_id_t id;
+    pico_get_unique_board_id(&id);
+    printf("Board ID: {");
+    for (int len = 0; len < 8; len++)
+    {
+        printf("0x%02X", id.id[len]);
+        if (len < 7)
+            printf(", ");
+    }
+    printf("}\n");
+}
+
+void setup()
+{
     stdio_init_all();
     // initialize gpio pins for power and LED
     gpio_init(POWER_PIN);
@@ -26,8 +40,23 @@ int main()
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, true);
     gpio_put(LED_PIN, true);
-    sleep_ms(1000);
+    if (is_debug())
+    {
+        int tries = 0;
+        while (!stdio_usb_connected())
+        {
+            sleep_ms(1);
+            if (tries++ > 2000)
+            {
+                break;
+            }
+        }
+        sleep_ms(1000);
+    }
+}
 
+void core0()
+{
     // initialize display
     ST7789 display(ST7789_SPI_PORT, ST7789_SPI_BAUDRATE, ST7789_PIN_SCK, ST7789_PIN_SDA, ST7789_PIN_DC, ST7789_PIN_RES);
     display.init();
@@ -68,7 +97,25 @@ int main()
             }
             printf("\n");
         }
+        sleep_ms(100);
     }
     gpio_put(POWER_PIN, false); // turn off
-    return 0;
+}
+
+void core1()
+{
+    SerialIn srl_in;
+    while (true)
+    {
+        srl_in.update();
+        sleep_ms(10); // sleep for 1ms
+    }
+}
+
+int main()
+{
+    setup();
+    print_serial();
+    // multicore_launch_core1(core1);
+    core0();
 }

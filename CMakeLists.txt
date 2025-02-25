@@ -46,6 +46,7 @@ add_executable(${PROJECT_NAME}
         src/graphics/graphics.cpp
         src/graphics/ST7789/ST7789.cpp
         src/matrix/matrix.cpp
+        src/SerialIn/SerialIn.cpp
         src/Socket/CC1101/CC1101.cpp
         src/Socket/Socket.cpp
         )

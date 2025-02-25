@@ -4,6 +4,8 @@
 #include "hardware/spi.h"
 #include "graphics/graphics.h"
 #include "matrix/matrix.h"
+#include "Socket/Socket.h"
+#include "SerialIn/SerialIn.h"
 
 #define LED_PIN 25
 #define POWER_PIN 16

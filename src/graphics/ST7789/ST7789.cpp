@@ -12,7 +12,10 @@ ST7789::ST7789(spi_inst_t *spi, uint baudrate, uint sck_pin, uint sda_pin, uint 
       m_sck_pin(sck_pin),
       m_sda_pin(sda_pin),
       m_dc_pin(dc_pin),
-      m_res_pin(res_pin)
+      m_res_pin(res_pin),
+      m_dma_channel(dma_claim_unused_channel(true)),
+      m_dma_config(dma_channel_get_default_config(m_dma_channel)),
+      m_dma_is_active(false)
 {
     // Configure the control pins
     gpio_init(m_dc_pin);
@@ -20,6 +23,7 @@ ST7789::ST7789(spi_inst_t *spi, uint baudrate, uint sck_pin, uint sda_pin, uint 
     gpio_init(m_res_pin);
     gpio_set_dir(m_res_pin, GPIO_OUT);
     hard_reset();
+    configure_dma();
 }
 
 void ST7789::write_command(uint8_t cmd) const
@@ -61,15 +65,74 @@ void ST7789::set_addr_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
     // Write to RAM
     write_command(ST7789_RAMWR);
 }
-
-void ST7789::draw_pixel(uint8_t x, uint8_t y, color_t color)
+void ST7789::configure_dma()
 {
+    // Configure the DMA channel
+    channel_config_set_transfer_data_size(&m_dma_config, DMA_SIZE_8);                           // 16-bit transfer, every pixel is 16 bits
+    channel_config_set_read_increment(&m_dma_config, true);                                     // Increment source
+    channel_config_set_write_increment(&m_dma_config, false);                                   // Fixed destination
+    channel_config_set_dreq(&m_dma_config, spi_get_index(m_spi) ? DREQ_SPI1_TX : DREQ_SPI0_TX); // SPI TX DREQ
+}
+void ST7789::draw_pixel(int x, int y, color_t color)
+{
+    // check if the pixel is within the screen
+    if (x < 0 || x >= ST7789_WIDTH || y < 0 || y >= ST7789_HEIGHT)
+        return;
+    // Draw a pixel at the specified coordinates
     m_buffer[x + y * ST7789_WIDTH] = convert_color(color);
 }
+
+#define CHUNK_SIZE (ST7789_WIDTH * ST7789_HEIGHT)
+
 void ST7789::update()
 {
+    // TODO: use the dma to update the screen in the background
+    // static int counter = 0;
+    // color_t colors[] = {COLOR_565_RED, COLOR_565_GREEN, COLOR_565_BLUE, COLOR_565_CYAN, COLOR_565_MAGENTA, COLOR_565_YELLOW};
+    // fill(colors[counter++ % 6]);
+
     set_addr_window(0, 0, ST7789_WIDTH - 1, ST7789_HEIGHT - 1);
-    write_data_buffer((uint8_t *)m_buffer, sizeof(m_buffer));
+    uint8_t *current_ptr = (uint8_t *)m_buffer;
+    int remaining_bytes = sizeof(m_buffer);
+    gpio_put(m_dc_pin, 1); // DC high for data
+    while (remaining_bytes > 0)
+    {
+        // printf("Remaining bytes: %d\n", remaining_bytes);
+        uint32_t transfer_size = remaining_bytes > CHUNK_SIZE ? CHUNK_SIZE : remaining_bytes;
+
+        // Configure the DMA channel
+        dma_channel_configure(
+            m_dma_channel,                    // DMA channel
+            &m_dma_config,                    // Channel config
+            &spi_get_hw(ST7789_SPI_PORT)->dr, // Destination (SPI TX FIFO)
+            current_ptr,                      // Source (memory buffer)
+            transfer_size,                    // Number of transfers (every transfer is 4 bytes)
+            true                              // Start immediately
+        );
+        m_dma_is_active = true;
+
+        // Wait for the current DMA transfer to complete
+        dma_channel_wait_for_finish_blocking(m_dma_channel);
+        // Update pointer and remaining bytes
+        current_ptr += transfer_size;
+        remaining_bytes -= transfer_size;
+    }
+
+    // // Configure the DMA channel
+    // printf("Configuring DMA\n");
+    // gpio_put(m_dc_pin, 1); // DC high for data
+    // dma_channel_configure(
+    //     m_dma_channel,                    // DMA channel
+    //     &m_dma_config,                    // Channel config
+    //     &spi_get_hw(ST7789_SPI_PORT)->dr, // Destination (SPI TX FIFO)
+    //     m_buffer,                         // Source (memory buffer)
+    //     sizeof(m_buffer) / 2,             // Number of bytes to transfer (one pixel is 2 bytes)
+    //     true                              // Start immediately
+    // );
+    // printf("Waiting for DMA to finish\n");
+    // dma_channel_wait_for_finish_blocking(m_dma_channel);
+    // dma_is_active = false;
+    // write_data_buffer((uint8_t *)m_buffer, sizeof(m_buffer));
 }
 
 void ST7789::fill(color_t color)
@@ -77,7 +140,7 @@ void ST7789::fill(color_t color)
     // Fill the entire screen with a color
     std::fill(m_buffer, m_buffer + ST7789_WIDTH * ST7789_HEIGHT, convert_color(color));
 }
-void ST7789::draw_char(uint8_t x, uint8_t y, char c, uint16_t color, uint8_t scale)
+void ST7789::draw_char(int x, int y, char c, color_t color, uint8_t scale)
 {
     // Ensure the character is within the bounds of the font array
     if (c < 32 || c > 126)
@@ -92,14 +155,14 @@ void ST7789::draw_char(uint8_t x, uint8_t y, char c, uint16_t color, uint8_t sca
             if (row & (1 << j))
             {
                 // printf("X");
-                for (uint8_t sx = 0; sx < scale; sx++) // Draw scaled pixel
-                    for (uint8_t sy = 0; sy < scale; sy++)
+                for (int sx = 0; sx < scale; sx++) // Draw scaled pixel
+                    for (int sy = 0; sy < scale; sy++)
                         draw_pixel(x + (j * scale) + sx, y + (i * scale) + sy, color);
             }
         }
     }
 }
-void ST7789::draw_text(uint8_t x, uint8_t y, const std::string &text, uint16_t color, uint8_t scale)
+void ST7789::draw_text(int x, int y, const std::string &text, uint16_t color, uint8_t scale)
 {
     uint8_t ori_x = x;
     for (size_t i = 0; i < text.length(); i++)

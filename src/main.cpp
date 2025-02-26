@@ -6,7 +6,6 @@
 #include "graphics/graphics.h"
 #include "matrix/matrix.h"
 #include "Socket/Socket.h"
-#include "SerialIn/SerialIn.h"
 
 #define LED_PIN 25
 #define POWER_PIN 15
@@ -15,6 +14,33 @@
 #define millis() to_ms_since_boot(get_absolute_time())
 
 #define is_debug() strcmp(PICO_CMAKE_BUILD_TYPE, "Debug") == 0
+
+enum LedMode
+{
+    OFF,
+    BLINK,
+    FADE,
+    RAINBOW
+};
+struct Settings
+{
+    // this can not be bigger than TCPPacket.body size!
+    LedMode mode;
+    uint8_t volumn;
+    uint8_t brightness;
+};
+struct RemoteControlPacket : protected TCPPacket
+{
+    RemoteControlPacket(const Settings &settings) : TCPPacket()
+    {
+        if (sizeof(Settings) > sizeof(TCPPacket::body))
+        {
+            printf("Error: Settings size is too big for packet body!\n");
+            return;
+        }
+        memcpy(this->body, &settings, sizeof(Settings));
+    }
+};
 
 void print_serial()
 {
@@ -67,9 +93,6 @@ void core0()
     Matrix keypad(rows, cols);
     // Matrix keypad({ROW0_PIN, ROW1_PIN, ROW2_PIN, ROW3_PIN}, {COL0_PIN, COL1_PIN, COL2_PIN, COL3_PIN});
 
-    GraphicsText text(0, 0, "hello world!", 1);
-    text.center_x(ST7789_WIDTH / 2);
-    text.center_y(ST7789_HEIGHT / 2);
     auto start_time = millis();
     while (true)
     {
@@ -79,7 +102,7 @@ void core0()
             break;
         }
         char display_text[] = "0";
-        display_text[0] += (uint8_t)(9 - (current_time - start_time) / 1000);
+        display_text[0] += (uint8_t)(9 - (current_time - start_time) / 100);
         GraphicsText text(0, 0, display_text, 1);
         text.center_x(ST7789_WIDTH / 2);
         text.center_y(ST7789_HEIGHT / 2);
@@ -97,25 +120,14 @@ void core0()
             }
             printf("\n");
         }
-        sleep_ms(100);
+        sleep_ms(10);
     }
     gpio_put(POWER_PIN, false); // turn off
-}
-
-void core1()
-{
-    SerialIn srl_in;
-    while (true)
-    {
-        srl_in.update();
-        sleep_ms(10); // sleep for 1ms
-    }
 }
 
 int main()
 {
     setup();
     print_serial();
-    // multicore_launch_core1(core1);
     core0();
 }

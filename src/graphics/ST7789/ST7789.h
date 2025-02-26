@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string>
 #include "font.h"
+#include "hardware/dma.h"
 
 // display size
 #define ST7789_WIDTH 240
@@ -130,6 +131,9 @@ private:
     uint8_t m_sda_pin;
     uint8_t m_dc_pin;
     uint8_t m_res_pin;
+    int m_dma_channel;
+    dma_channel_config m_dma_config;
+    bool m_dma_is_active;
     uint16_t m_buffer[ST7789_WIDTH * ST7789_HEIGHT] = {};
 
 private:
@@ -137,6 +141,7 @@ private:
     void write_data(uint8_t data) const;
     void write_data_buffer(const uint8_t *buffer, size_t size) const;
     void set_addr_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) const;
+    void configure_dma();
 
 public:
     ST7789(spi_inst_t *spi, uint baudrate, uint sck_pin, uint sda_pin, uint dc_pin, uint res_pin);
@@ -144,9 +149,9 @@ public:
     void init();
     void turn_on(bool on);
     void set_sleep(bool mode);
-    void draw_pixel(uint8_t x, uint8_t y, color_t color);
+    void draw_pixel(int x, int y, color_t color);
     void update();
     void fill(color_t color);
-    void draw_char(uint8_t x, uint8_t y, char c, color_t color, uint8_t scale);
-    void draw_text(uint8_t x, uint8_t y, const std::string &text, uint16_t color, uint8_t scale);
+    void draw_char(int x, int y, char c, color_t color, uint8_t scale);
+    void draw_text(int x, int y, const std::string &text, uint16_t color, uint8_t scale);
 };
